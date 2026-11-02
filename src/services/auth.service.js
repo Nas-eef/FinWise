@@ -19,18 +19,6 @@ export const AuthService = {
 
       if (error) throw error
 
-      // If user is returned, ensure profile exists
-      if (data?.user) {
-        await supabase
-          .from('profiles')
-          .upsert({
-            id: data.user.id,
-            email: data.user.email,
-            full_name: full_name?.trim() || email.split('@')[0],
-          })
-          .catch(() => {}) // Trigger handle_new_user may already have created it
-      }
-
       return {
         user: data.user,
         session: data.session,

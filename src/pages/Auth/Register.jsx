@@ -82,7 +82,7 @@ export const Register = () => {
         setError('This email is already registered. Please sign in or use Forgot Password.')
       } else if (msg.includes('error sending confirmation email')) {
         setError(
-          'Email delivery failed via Resend SMTP. In Supabase Dashboard: ensure Port is 587 (or 465), Sender Email matches your verified Resend domain (or onboarding@resend.dev), and your Resend API Key is correct.'
+          'Email delivery failed. In Supabase Dashboard ➔ SMTP Settings: please verify your Gmail App Password and SMTP credentials.'
         )
       } else {
         setError(err.message || 'Registration failed. Please try again.')
