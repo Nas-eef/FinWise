@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-forest: #242E25;
+    --brand-sage: #8AAB8F;
+    --brand-mint: #D3E8D6;
+    --brand-muted: #7C827C;
+    --brand-bg: #F7F9F7;
+    --brand-card: #FFFFFF;
+    --brand-border: #E7ECE7;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden !important;
+    background-color: #F7F9F7;
+    color: #242E25;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar for clean aesthetics */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D3E8D6;
+    border-radius: 9999px;
+  }
+}
+
+.safe-top {
+  padding-top: max(env(safe-area-inset-top, 0px), 8px);
+}
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+}
