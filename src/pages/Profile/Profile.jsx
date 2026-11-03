@@ -365,13 +365,13 @@ export const Profile = () => {
       <ConfirmDialog
         isOpen={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
-        onConfirm={() => {
-          resetAllData()
+        onConfirm={async () => {
           setShowResetConfirm(false)
+          await resetAllData()
         }}
-        title="Reset All Local Data"
-        message="This will reset all balances, transactions, loans, and friend notes to zero (₹0.00)."
-        confirmText="Reset to Zero"
+        title="Clear All Financial Data"
+        message="This will permanently delete all your transactions, loans, friend notes, and reset account balances to ₹0.00 both on this device and in your Supabase cloud database. This action cannot be undone."
+        confirmText="Yes, Clear All Data"
         isDanger={true}
       />
     </div>

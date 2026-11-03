@@ -122,6 +122,39 @@ export const TransactionService = {
       const amount = Number(txData.amount)
       if (amount <= 0) throw new Error('Amount must be positive')
 
+      // Idempotency check: prevent duplicate inserts if offline sync retries
+      const clientRef = txData.id && typeof txData.id === 'string' && txData.id.startsWith('tx-')
+        ? txData.id
+        : null
+
+      if (clientRef) {
+        const { data: existing } = await supabase
+          .from('transactions')
+          .select(`
+            *,
+            account:accounts(id, name, account_type),
+            category:categories(id, name, type, icon, color)
+          `)
+          .eq('user_id', user.id)
+          .eq('reference_number', clientRef)
+          .maybeSingle()
+
+        if (existing?.id) {
+          return {
+            id: existing.id,
+            type: existing.transaction_type,
+            amount: Number(existing.amount),
+            date: existing.transaction_date,
+            description: existing.description,
+            notes: existing.notes,
+            categoryId: existing.category_id,
+            category: existing.category || null,
+            accountId: existing.account_id,
+            groupId: existing.group_id,
+          }
+        }
+      }
+
       // 1. Resolve Category safely to avoid foreign key errors
       let categoryId = null
       const targetCatId = isUuid(txData.categoryId)
@@ -194,6 +227,7 @@ export const TransactionService = {
         category_id: categoryId,
         account_id: accountId,
         attachment_url: txData.attachmentUrl || null,
+        reference_number: clientRef,
       }
 
       if (groupId) {

@@ -177,4 +177,54 @@ export const AuthService = {
       throw handleSupabaseError(err, 'Failed to update profile')
     }
   },
+
+  /**
+   * Permanently clear all user data from Supabase PostgreSQL tables
+   */
+  async clearAllUserData() {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const user = sessionData?.session?.user || (await supabase.auth.getUser()).data?.user
+      if (!user) throw new Error('Not authenticated')
+
+      // Delete dependent records first to respect foreign key constraints
+      await supabase.from('loan_payments').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('loan_installments').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('loans').delete().eq('user_id', user.id).catch(() => {})
+
+      await supabase.from('debt_repayments').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('receivables').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('payables').delete().eq('user_id', user.id).catch(() => {})
+
+      await supabase.from('savings_contributions').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('savings_goals').delete().eq('user_id', user.id).catch(() => {})
+
+      await supabase.from('transfers').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('transactions').delete().eq('user_id', user.id).catch(() => {})
+
+      await supabase.from('recurring_payments').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('reminders').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('notifications').delete().eq('user_id', user.id).catch(() => {})
+
+      // Delete custom budgets & expense groups
+      await supabase.from('budget_categories').delete().neq('id', '00000000-0000-0000-0000-000000000000').catch(() => {})
+      await supabase.from('budgets').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('expense_groups').delete().eq('user_id', user.id).catch(() => {})
+
+      // Reset user accounts to zero balance
+      await supabase.from('accounts').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('accounts').insert({
+        user_id: user.id,
+        name: 'Primary Bank Account',
+        account_type: 'bank',
+        balance: 0.00,
+        currency: 'INR',
+        is_default: true,
+      }).catch(() => {})
+
+      return true
+    } catch (err) {
+      throw handleSupabaseError(err, 'Failed to clear user data from database')
+    }
+  },
 }

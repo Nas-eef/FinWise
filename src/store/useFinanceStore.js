@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { scheduleEmiNotification } from '../utils/nativeNotifications'
 import { supabase } from '../lib/supabase'
 import {
+  AuthService,
   TransactionService,
   AccountService,
   CategoryService,
@@ -15,6 +16,10 @@ import {
   NotificationService,
   GroupService,
 } from '../services'
+
+// Locks to prevent concurrent / duplicate offline sync executions
+const activeSyncTxIds = new Set()
+let isSyncRunning = false
 
 const initialCategories = [
   // Expense
@@ -357,6 +362,9 @@ export const useFinanceStore = create(
        * Sync complete user financial data directly from Supabase
        */
       syncWithSupabase: async () => {
+        if (isSyncRunning) return
+        isSyncRunning = true
+
         try {
           const { data: sessionData } = await supabase.auth.getSession()
           const user = sessionData?.session?.user || (await supabase.auth.getUser()).data?.user
@@ -404,31 +412,43 @@ export const useFinanceStore = create(
             }
           }
 
-          // 2. Transactions
+          // 2. Transactions (with duplicate prevention)
           if (txsRes.status === 'fulfilled' && Array.isArray(txsRes.value)) {
             const dbTxs = txsRes.value
             const localTxs = get().transactions || []
-            const unsynced = localTxs.filter((t) => typeof t.id === 'string' && t.id.startsWith('tx-'))
+            
+            // Only sync items that are not currently being synced by another call
+            const unsynced = localTxs.filter((t) =>
+              typeof t.id === 'string' &&
+              t.id.startsWith('tx-') &&
+              !activeSyncTxIds.has(t.id)
+            )
 
             if (unsynced.length > 0) {
-              // Attempt to back-sync local transactions to Supabase in background
-              unsynced.forEach((localTx) => {
-                TransactionService.createTransaction(localTx)
-                  .then((saved) => {
-                    if (saved?.id) {
-                      set((s) => ({
-                        transactions: s.transactions.map((tx) =>
-                          tx.id === localTx.id ? { ...tx, id: saved.id, synced: true } : tx
-                        ),
-                      }))
-                    }
-                  })
-                  .catch((err) => console.warn('Background sync failed for tx:', localTx.id, err))
-              })
+              // Sequentially sync each item and guard against duplicates
+              for (const localTx of unsynced) {
+                activeSyncTxIds.add(localTx.id)
+                try {
+                  const saved = await TransactionService.createTransaction(localTx)
+                  if (saved?.id) {
+                    set((s) => ({
+                      transactions: s.transactions.map((tx) =>
+                        tx.id === localTx.id ? { ...tx, id: saved.id, synced: true } : tx
+                      ),
+                    }))
+                  }
+                } catch (err) {
+                  console.warn('Background sync failed for tx:', localTx.id, err)
+                } finally {
+                  activeSyncTxIds.delete(localTx.id)
+                }
+              }
             }
 
+            const currentLocal = get().transactions || []
+            const currentUnsynced = currentLocal.filter((t) => typeof t.id === 'string' && t.id.startsWith('tx-'))
             const dbIds = new Set(dbTxs.map((t) => t.id))
-            const stillUnsynced = unsynced.filter((t) => !dbIds.has(t.id))
+            const stillUnsynced = currentUnsynced.filter((t) => !dbIds.has(t.id))
             updates.transactions = [...stillUnsynced, ...dbTxs]
 
             // Recalculate balance if not already derived from accounts
@@ -478,6 +498,8 @@ export const useFinanceStore = create(
           set((state) => ({ ...state, ...updates }))
         } catch (err) {
           console.warn('Sync with Supabase note:', err)
+        } finally {
+          isSyncRunning = false
         }
       },
 
@@ -606,8 +628,11 @@ export const useFinanceStore = create(
           transactionToEdit: null,
         }))
 
-        // 2. Direct Supabase persist
-        TransactionService.createTransaction(tx)
+        // Guard against duplicate sync while this direct call is in flight
+        activeSyncTxIds.add(id)
+
+        // 2. Direct Supabase persist with idempotency reference
+        TransactionService.createTransaction({ ...tx, id })
           .then((saved) => {
             if (saved?.id) {
               set((state) => ({
@@ -627,7 +652,10 @@ export const useFinanceStore = create(
             }
           })
           .catch((err) => {
-            console.error('Direct Supabase transaction insert error:', err)
+            console.error('Direct Supabase transaction insert error (will auto-sync safely):', err)
+          })
+          .finally(() => {
+            activeSyncTxIds.delete(id)
           })
       },
 
@@ -1171,9 +1199,17 @@ export const useFinanceStore = create(
         )
       },
 
-      // Reset to fresh blank slate
-      resetAllData: () => {
+      // Reset to fresh blank slate (clears both local store AND Supabase DB)
+      resetAllData: async () => {
+        // 1. Instantly reset local Zustand state & localStorage cache
         get().startFresh()
+
+        // 2. Permanently delete user data from Supabase PostgreSQL tables
+        try {
+          await AuthService.clearAllUserData()
+        } catch (err) {
+          console.error('Supabase clearAllUserData error:', err)
+        }
       }
     }),
     {
