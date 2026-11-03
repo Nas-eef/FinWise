@@ -23,6 +23,9 @@ export const AppLayout = () => {
     if (path === '/friends-notes') return { title: 'Friends Notes (Borrow/Lend)', showBack: true }
     if (path === '/loans') return { title: 'Loans & EMI Manager', showBack: true }
     if (path === '/receivables') return { title: 'Receivables & Payables', showBack: true }
+    if (path === '/vault') return { title: 'Document Vault', showBack: true }
+    if (path === '/meetings') return { title: 'Meetings & Follow-ups', showBack: true }
+    if (path === '/wiki') return { title: 'Personal Wiki', showBack: true }
     if (path === '/settings') return { title: 'Preferences', showBack: true }
     if (path === '/notifications') return { title: 'Notifications', showBack: true }
     return { title: 'FinWise', showBack: true }

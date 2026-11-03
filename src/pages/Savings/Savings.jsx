@@ -67,7 +67,25 @@ export const Savings = () => {
 
       {/* Goal Cards */}
       <div className="space-y-4">
-        {savingsGoals.map((goal) => {
+        {savingsGoals.length === 0 ? (
+          <div className="w-full p-8 text-center bg-white border border-brand-border/70 rounded-2xl space-y-1">
+            <ShieldCheck className="w-8 h-8 text-sage mx-auto mb-2 opacity-60" />
+            <p className="text-xs font-bold text-forest">No savings goals created</p>
+            <p className="text-[11px] text-mutedgreen">
+              Set emergency funds, vacation goals, or purchase targets to start saving.
+            </p>
+            <button
+              onClick={() => {
+                setGoalToEdit(null)
+                setIsGoalModalOpen(true)
+              }}
+              className="mt-3 px-3.5 py-1.5 bg-forest text-mint text-xs font-bold rounded-xl shadow-sm"
+            >
+              Create First Goal
+            </button>
+          </div>
+        ) : (
+          savingsGoals.map((goal) => {
           const percentage = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100)) || 0
           const isCompleted = goal.currentAmount >= goal.targetAmount
           const remaining = Math.max(0, goal.targetAmount - goal.currentAmount)
@@ -159,7 +177,7 @@ export const Savings = () => {
               </div>
             </div>
           )
-        })}
+        }))}
       </div>
 
       {/* Modals */}

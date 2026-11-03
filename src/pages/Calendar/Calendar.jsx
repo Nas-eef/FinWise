@@ -6,29 +6,51 @@ import { useFinanceStore } from '../../store/useFinanceStore'
 import { Calendar as CalendarIcon, Plus, CheckCircle, Circle, Trash2, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export const Calendar = () => {
-  const reminders = useFinanceStore((state) => state.reminders)
+  const reminders = useFinanceStore((state) => state.reminders) || []
   const toggleReminder = useFinanceStore((state) => state.toggleReminder)
   const deleteReminder = useFinanceStore((state) => state.deleteReminder)
   const user = useFinanceStore((state) => state.user)
 
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('upcoming')
-  const [selectedDate, setSelectedDate] = useState('2026-11-15')
+  const [viewDate, setViewDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0])
   const [reminderToDelete, setReminderToDelete] = useState(null)
 
-  // Current calendar month days for November 2026 (starts Sunday Nov 1)
-  const daysInNov = Array.from({ length: 30 }, (_, i) => i + 1)
+  const today = new Date()
+  const todayStr = today.toISOString().split('T')[0]
 
-  // Days that have reminders
-  const reminderDays = new Set(
-    reminders.map(r => parseInt(r.dueDate.split('-')[2]))
+  const year = viewDate.getFullYear()
+  const month = viewDate.getMonth()
+  const monthName = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+
+  // First day of month (0 = Sun, 1 = Mon...)
+  const firstDayOfWeek = new Date(year, month, 1).getDay()
+  // Total days in current month
+  const totalDaysInMonth = new Date(year, month + 1, 0).getDate()
+
+  const daysArray = Array.from({ length: totalDaysInMonth }, (_, i) => i + 1)
+  const leadingBlanks = Array.from({ length: firstDayOfWeek }, (_, i) => i)
+
+  const changeMonth = (delta) => {
+    setViewDate(new Date(year, month + delta, 1))
+  }
+
+  // Days that have reminders in this month
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`
+  const reminderDaysInMonth = new Set(
+    reminders
+      .filter((r) => r.dueDate && r.dueDate.startsWith(monthPrefix))
+      .map((r) => parseInt(r.dueDate.split('-')[2]))
   )
 
-  const filteredReminders = reminders.filter(r => {
-    if (activeTab === 'upcoming') return !r.completed
-    if (activeTab === 'completed') return r.completed
-    return true
-  }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+  const filteredReminders = reminders
+    .filter((r) => {
+      if (activeTab === 'upcoming') return !r.completed
+      if (activeTab === 'completed') return r.completed
+      return true
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
 
   return (
     <div className="space-y-5 pb-20">
@@ -36,12 +58,33 @@ export const Calendar = () => {
       <div className="bg-white border border-brand-border/80 rounded-card-lg p-5 shadow-subtle">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-mutedgreen">Financial Calendar</span>
-            <h2 className="text-lg font-black text-forest">November 2026</h2>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-mutedgreen">
+              Financial Calendar
+            </span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <h2 className="text-lg font-black text-forest">{monthName}</h2>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => changeMonth(-1)}
+                  className="p-1 text-mutedgreen hover:text-forest rounded-lg hover:bg-brand-bg transition-colors"
+                  title="Previous month"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => changeMonth(1)}
+                  className="p-1 text-mutedgreen hover:text-forest rounded-lg hover:bg-brand-bg transition-colors"
+                  title="Next month"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
+
           <button
             onClick={() => setIsAddOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest text-white rounded-full text-xs font-bold shadow-subtle hover:bg-forest/90 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest text-mint rounded-xl text-xs font-bold shadow-subtle hover:bg-forest/90 active:scale-95 transition-all"
           >
             <Plus className="w-3.5 h-3.5" /> Add Reminder
           </button>
@@ -49,18 +92,26 @@ export const Calendar = () => {
 
         {/* Calendar Day Labels */}
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-mutedgreen mb-2">
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
             <div key={d} className="py-1">{d}</div>
           ))}
         </div>
 
         {/* Days Grid */}
         <div className="grid grid-cols-7 gap-1.5">
-          {daysInNov.map(day => {
-            const hasReminder = reminderDays.has(day)
-            const dateStr = `2026-11-${String(day).padStart(2, '0')}`
+          {/* Leading blank slots for days before 1st of month */}
+          {leadingBlanks.map((b) => (
+            <div key={`blank-${b}`} className="h-10" />
+          ))}
+
+          {daysArray.map((day) => {
+            const hasReminder = reminderDaysInMonth.has(day)
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const isSelected = selectedDate === dateStr
-            const isToday = day === 2 // Nov 2
+            const isToday =
+              day === today.getDate() &&
+              month === today.getMonth() &&
+              year === today.getFullYear()
 
             return (
               <button
@@ -76,9 +127,11 @@ export const Calendar = () => {
               >
                 <span>{day}</span>
                 {hasReminder && (
-                  <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                    isSelected ? 'bg-mint' : 'bg-[#D9534F]'
-                  }`} />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                      isSelected ? 'bg-mint' : 'bg-[#D9534F]'
+                    }`}
+                  />
                 )}
               </button>
             )
@@ -95,7 +148,7 @@ export const Calendar = () => {
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-1.5 font-bold rounded-xl capitalize transition-all ${
                 activeTab === tab
-                  ? 'bg-forest text-white shadow-subtle'
+                  ? 'bg-forest text-mint shadow-subtle'
                   : 'text-mutedgreen hover:text-forest'
               }`}
             >
@@ -107,8 +160,22 @@ export const Calendar = () => {
 
       {/* Reminders List */}
       <div className="space-y-3">
-        {filteredReminders.map((rem) => {
-          return (
+        {filteredReminders.length === 0 ? (
+          <div className="w-full p-8 text-center bg-white border border-brand-border/70 rounded-2xl space-y-1">
+            <Clock className="w-8 h-8 text-sage mx-auto mb-2 opacity-60" />
+            <p className="text-xs font-bold text-forest">No reminders found</p>
+            <p className="text-[11px] text-mutedgreen">
+              Add upcoming bill dues, EMIs, or subscription dates to track them here.
+            </p>
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="mt-3 px-3 py-1.5 bg-forest text-mint text-xs font-bold rounded-xl shadow-sm"
+            >
+              Add Reminder
+            </button>
+          </div>
+        ) : (
+          filteredReminders.map((rem) => (
             <div
               key={rem.id}
               className={`flex items-center justify-between p-4 bg-white border rounded-card shadow-subtle transition-all ${
@@ -133,9 +200,11 @@ export const Calendar = () => {
                     <h4 className={`text-sm font-bold text-forest ${rem.completed ? 'line-through text-mutedgreen' : ''}`}>
                       {rem.title}
                     </h4>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAFBF9] border border-brand-border text-mutedgreen uppercase">
-                      {rem.type}
-                    </span>
+                    {rem.type && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAFBF9] border border-brand-border text-mutedgreen uppercase">
+                        {rem.type}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-mutedgreen mt-0.5">
                     <span>Due {formatDate(rem.dueDate, 'relative')}</span>
@@ -166,8 +235,8 @@ export const Calendar = () => {
                 </button>
               </div>
             </div>
-          )
-        })}
+          ))
+        )}
       </div>
 
       {/* Modals */}
@@ -189,4 +258,3 @@ export const Calendar = () => {
     </div>
   )
 }
-

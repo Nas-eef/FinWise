@@ -100,3 +100,47 @@ export const scheduleEmiNotification = async ({ id, title, message, dueDate }) =
   }
   return false
 }
+
+/**
+ * General Schedule Local Notification for Meetings & Reminders
+ */
+export const scheduleLocalNotification = async ({ id, title, body, scheduleAt }) => {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      const perm = await LocalNotifications.requestPermissions()
+      if (perm.display === 'granted') {
+        const notifId =
+          typeof id === 'number'
+            ? id
+            : Math.floor(Math.abs(Number(String(id || '').replace(/\D/g, '').slice(-8)))) ||
+              Math.floor(Math.random() * 100000)
+
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: notifId,
+              title: title || 'FinWise Reminder',
+              body: body || 'You have an upcoming event.',
+              schedule: { at: scheduleAt || new Date(Date.now() + 500) },
+              sound: 'default',
+            },
+          ],
+        })
+        return true
+      }
+    }
+
+    // Web Browser fallback
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        const delay = scheduleAt ? Math.max(0, new Date(scheduleAt).getTime() - Date.now()) : 500
+        if (delay > 0 && delay < 2147483647) {
+          setTimeout(() => new Notification(title, { body }), delay)
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[NOTIF] Could not schedule local notification:', err)
+  }
+  return false
+}

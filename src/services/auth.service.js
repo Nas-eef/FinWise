@@ -211,6 +211,11 @@ export const AuthService = {
       await supabase.from('budgets').delete().eq('user_id', user.id).catch(() => {})
       await supabase.from('expense_groups').delete().eq('user_id', user.id).catch(() => {})
 
+      // Delete document vault, meetings & wiki
+      await supabase.from('document_vault').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('meetings_followups').delete().eq('user_id', user.id).catch(() => {})
+      await supabase.from('personal_wiki').delete().eq('user_id', user.id).catch(() => {})
+
       // Reset user accounts to zero balance
       await supabase.from('accounts').delete().eq('user_id', user.id).catch(() => {})
       await supabase.from('accounts').insert({

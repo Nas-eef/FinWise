@@ -76,7 +76,25 @@ export const Recurring = () => {
 
       {/* Subscription Cards */}
       <div className="space-y-3">
-        {filtered.map((item) => {
+        {filtered.length === 0 ? (
+          <div className="w-full p-8 text-center bg-white border border-brand-border/70 rounded-2xl space-y-1">
+            <RefreshCw className="w-8 h-8 text-sage mx-auto mb-2 opacity-60" />
+            <p className="text-xs font-bold text-forest">No recurring payments</p>
+            <p className="text-[11px] text-mutedgreen">
+              Track monthly subscriptions, utility bills, Wi-Fi or streaming plans.
+            </p>
+            <button
+              onClick={() => {
+                setSelectedToEdit(null)
+                setIsAddOpen(true)
+              }}
+              className="mt-3 px-3.5 py-1.5 bg-forest text-mint text-xs font-bold rounded-xl shadow-sm"
+            >
+              Add Subscription
+            </button>
+          </div>
+        ) : (
+          filtered.map((item) => {
           const category = categories.find(c => c.id === item.categoryId)
           const isPaused = item.status === 'paused'
 
@@ -156,7 +174,7 @@ export const Recurring = () => {
               </div>
             </div>
           )
-        })}
+        }))}
       </div>
 
       {/* Modals */}

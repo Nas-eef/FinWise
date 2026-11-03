@@ -9,7 +9,7 @@ import { TransactionDetailsModal } from '../Transactions/TransactionDetailsModal
 import { FriendNoteModal } from '../FriendsNotes/FriendNoteModal'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import { useFinanceStore } from '../../store/useFinanceStore'
-import { ChevronRight, Users, Bell, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { ChevronRight, Users, Bell, ArrowDownLeft, ArrowUpRight, Shield, CalendarCheck, BookOpen } from 'lucide-react'
 
 export const Dashboard = () => {
   const navigate = useNavigate()
@@ -17,6 +17,9 @@ export const Dashboard = () => {
   const friendsNotes = useFinanceStore((state) => state.friendsNotes)
   const loans = useFinanceStore((state) => state.loans)
   const user = useFinanceStore((state) => state.user)
+  const documents = useFinanceStore((state) => state.documents) || []
+  const meetings = useFinanceStore((state) => state.meetings) || []
+  const wikiArticles = useFinanceStore((state) => state.wikiArticles) || []
 
   const [selectedTx, setSelectedTx] = useState(null)
   const [isAddFriendNoteOpen, setIsAddFriendNoteOpen] = useState(false)
@@ -144,7 +147,45 @@ export const Dashboard = () => {
         )}
       </div>
 
-      {/* 5. Recent Activity */}
+      {/* 5. Productivity & Personal Hub */}
+      <div className="grid grid-cols-3 gap-2">
+        <div
+          onClick={() => navigate('/vault')}
+          className="bg-white border border-brand-border/70 rounded-2xl p-3 shadow-subtle hover:border-sage cursor-pointer transition-all active:scale-95 flex flex-col items-center text-center"
+        >
+          <div className="w-8 h-8 rounded-xl bg-forest/5 text-forest flex items-center justify-center mb-1">
+            <Shield className="w-4 h-4 text-forest" />
+          </div>
+          <span className="text-[11px] font-black text-forest">Doc Vault</span>
+          <span className="text-[9px] text-mutedgreen font-bold">{documents.length} files</span>
+        </div>
+
+        <div
+          onClick={() => navigate('/meetings')}
+          className="bg-white border border-brand-border/70 rounded-2xl p-3 shadow-subtle hover:border-sage cursor-pointer transition-all active:scale-95 flex flex-col items-center text-center"
+        >
+          <div className="w-8 h-8 rounded-xl bg-forest/5 text-forest flex items-center justify-center mb-1">
+            <CalendarCheck className="w-4 h-4 text-forest" />
+          </div>
+          <span className="text-[11px] font-black text-forest">Follow-ups</span>
+          <span className="text-[9px] text-mutedgreen font-bold">
+            {meetings.filter((m) => m.status !== 'completed').length} active
+          </span>
+        </div>
+
+        <div
+          onClick={() => navigate('/wiki')}
+          className="bg-white border border-brand-border/70 rounded-2xl p-3 shadow-subtle hover:border-sage cursor-pointer transition-all active:scale-95 flex flex-col items-center text-center"
+        >
+          <div className="w-8 h-8 rounded-xl bg-forest/5 text-forest flex items-center justify-center mb-1">
+            <BookOpen className="w-4 h-4 text-forest" />
+          </div>
+          <span className="text-[11px] font-black text-forest">Wiki Notes</span>
+          <span className="text-[9px] text-mutedgreen font-bold">{wikiArticles.length} docs</span>
+        </div>
+      </div>
+
+      {/* 6. Recent Activity */}
       <div className="w-full space-y-2">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-bold uppercase tracking-wider text-mutedgreen">Recent Activity</h3>

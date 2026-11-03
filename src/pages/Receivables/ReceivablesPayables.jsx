@@ -90,7 +90,26 @@ export const ReceivablesPayables = () => {
 
       {/* List */}
       <div className="space-y-3">
-        {currentList.map((item) => {
+        {currentList.length === 0 ? (
+          <div className="w-full p-8 text-center bg-white border border-brand-border/70 rounded-2xl space-y-1">
+            <Clock className="w-8 h-8 text-sage mx-auto mb-2 opacity-60" />
+            <p className="text-xs font-bold text-forest">
+              No {activeTab === 'receivable' ? 'receivables' : 'payables'} recorded
+            </p>
+            <p className="text-[11px] text-mutedgreen">
+              {activeTab === 'receivable'
+                ? 'Record money lent to friends or pending payments from clients.'
+                : 'Record money borrowed or payments you need to settle.'}
+            </p>
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="mt-3 px-3.5 py-1.5 bg-forest text-mint text-xs font-bold rounded-xl shadow-sm"
+            >
+              Add Entry
+            </button>
+          </div>
+        ) : (
+          currentList.map((item) => {
           const outstanding = Math.max(0, item.amount - item.paidAmount)
           const isSettled = item.status === 'settled' || outstanding === 0
           const isExpanded = expandedDebtId === item.id
@@ -186,7 +205,7 @@ export const ReceivablesPayables = () => {
               )}
             </div>
           )
-        })}
+        }))}
       </div>
 
       {/* Modals */}

@@ -15,6 +15,9 @@ import {
   ReminderService,
   NotificationService,
   GroupService,
+  VaultService,
+  MeetingService,
+  WikiService,
 } from '../services'
 
 // Locks to prevent concurrent / duplicate offline sync executions
@@ -41,214 +44,6 @@ const initialCategories = [
   { id: 'fc6b4204-1ce4-498c-96eb-702cdbfb7243', name: 'Rental Income', type: 'income', icon: 'Building', color: '#558B2F' },
   { id: 'af44ec5d-c37e-4f4a-b677-ce317efeaec2', name: 'Investments & Dividends', type: 'income', icon: 'TrendingUp', color: '#00ACC1' },
   { id: '10a59878-c625-4d37-b7f9-b492053c2ee6', name: 'Other Income', type: 'income', icon: 'PlusCircle', color: '#689F38' },
-]
-
-const initialTransactions = [
-  {
-    id: 'tx-1',
-    type: 'income',
-    amount: 65000.00,
-    categoryId: 'cat-salary',
-    date: '2026-11-01',
-    description: 'Monthly Tech Salary',
-    notes: 'Direct salary transfer',
-  },
-  {
-    id: 'tx-2',
-    type: 'expense',
-    amount: 16500.00,
-    categoryId: 'cat-rent',
-    date: '2026-11-01',
-    description: 'Apartment Rent',
-    notes: 'November house rent paid via UPI',
-  },
-  {
-    id: 'tx-3',
-    type: 'expense',
-    amount: 2450.00,
-    categoryId: 'cat-food',
-    date: '2026-11-02',
-    description: 'Grocery & Supermarket',
-    notes: 'Weekly fresh vegetables and groceries',
-  },
-  {
-    id: 'tx-4',
-    type: 'expense',
-    amount: 850.00,
-    categoryId: 'cat-transport',
-    date: '2026-10-31',
-    description: 'Fuel / Metro Recharge',
-    notes: 'Weekly travel commute',
-  },
-  {
-    id: 'tx-5',
-    type: 'income',
-    amount: 12000.00,
-    categoryId: 'cat-freelance',
-    date: '2026-10-29',
-    description: 'Freelance UI Sprint',
-    notes: 'Milestone payout from client',
-  },
-  {
-    id: 'tx-6',
-    type: 'expense',
-    amount: 1650.00,
-    categoryId: 'cat-bills',
-    date: '2026-10-28',
-    description: 'Wi-Fi & Electricity Bill',
-    notes: 'Broadband and monthly electricity',
-  }
-]
-
-// Friends Notes (Amount to get from friends vs Amount to pay to friends in Rupees)
-const initialFriendsNotes = [
-  {
-    id: 'fn-1',
-    type: 'to_get', // Lent: Friend borrowed from me, I have to get it
-    personName: 'Rahul Sharma',
-    amount: 3500.00,
-    paidAmount: 1000.00,
-    dueDate: '2026-11-10',
-    note: 'Weekend trip resort booking split',
-    isSettled: false,
-  },
-  {
-    id: 'fn-2',
-    type: 'to_get',
-    personName: 'Priya Patel',
-    amount: 1250.00,
-    paidAmount: 0.00,
-    dueDate: '2026-11-15',
-    note: 'Concert passes advance booking',
-    isSettled: false,
-  },
-  {
-    id: 'fn-3',
-    type: 'to_pay', // Borrowed: I have to pay to him
-    personName: 'Amit Verma',
-    amount: 2500.00,
-    paidAmount: 1000.00,
-    dueDate: '2026-11-12',
-    note: 'Borrowed for restaurant dinner bill payment',
-    isSettled: false,
-  },
-  {
-    id: 'fn-4',
-    type: 'to_pay',
-    personName: 'Suresh Kumar',
-    amount: 5000.00,
-    paidAmount: 5000.00,
-    dueDate: '2026-10-25',
-    note: 'Borrowed for car tyre change emergency',
-    isSettled: true,
-  }
-]
-
-// Loans & EMI with 1-Day Before Push Notification in Rupees
-const initialLoans = [
-  {
-    id: 'loan-1',
-    name: 'Car Financing Loan',
-    lender: 'HDFC Auto Finance',
-    originalAmount: 550000,
-    outstandingAmount: 280000,
-    interestRate: 8.5,
-    emiAmount: 9850.00,
-    dueDate: '2026-11-15',
-    pushNotification1DayBefore: true,
-    notificationDate: '2026-11-14',
-    schedule: [
-      { month: 'Oct 2026', emi: 9850.00, status: 'paid', date: '2026-10-15' },
-      { month: 'Nov 2026', emi: 9850.00, status: 'upcoming', date: '2026-11-15' },
-      { month: 'Dec 2026', emi: 9850.00, status: 'upcoming', date: '2026-12-15' },
-    ]
-  },
-  {
-    id: 'loan-2',
-    name: 'MacBook Pro EMI',
-    lender: 'Bajaj Finserv',
-    originalAmount: 75000,
-    outstandingAmount: 25000,
-    interestRate: 0,
-    emiAmount: 4500.00,
-    dueDate: '2026-11-20',
-    pushNotification1DayBefore: true,
-    notificationDate: '2026-11-19',
-    schedule: [
-      { month: 'Oct 2026', emi: 4500.00, status: 'paid', date: '2026-10-20' },
-      { month: 'Nov 2026', emi: 4500.00, status: 'upcoming', date: '2026-11-20' },
-      { month: 'Dec 2026', emi: 4500.00, status: 'upcoming', date: '2026-12-20' },
-    ]
-  }
-]
-
-const initialNotifications = [
-  {
-    id: 'notif-1',
-    title: '⏰ 1-Day EMI Due Alert',
-    message: 'Your Car Financing EMI of ₹9,850.00 is due tomorrow (Nov 15).',
-    time: 'Auto-Scheduled (1 Day Before)',
-    read: false,
-    type: 'emi_reminder'
-  },
-  {
-    id: 'notif-2',
-    title: '⏰ 1-Day EMI Due Alert',
-    message: 'MacBook Pro EMI of ₹4,500.00 is due in 1 day (Nov 20).',
-    time: 'Upcoming',
-    read: false,
-    type: 'emi_reminder'
-  },
-  {
-    id: 'notif-3',
-    title: 'Budget Status',
-    message: 'Your monthly spending is on track within your ₹45,000 budget.',
-    time: 'Yesterday',
-    read: true,
-    type: 'info'
-  }
-]
-
-const defaultExpenseGroups = [
-  { id: 'grp-pg', name: 'PG Expenses', icon: 'Home', color: '#26A69A' },
-  { id: 'grp-personal', name: 'Personal & Living', icon: 'User', color: '#43845A' },
-  { id: 'grp-office', name: 'Office / Work', icon: 'Briefcase', color: '#42A5F5' },
-]
-
-// Sample Accounts
-const sampleAccounts = [
-  { id: 'acc-1', name: 'HDFC Bank Salary A/c', type: 'bank', balance: 48500.00, institution: 'HDFC Bank', isDefault: true, color: '#26A69A' },
-  { id: 'acc-2', name: 'Paytm UPI Wallet', type: 'wallet', balance: 4250.00, institution: 'Paytm Payments', isDefault: false, color: '#42A5F5' },
-  { id: 'acc-3', name: 'Cash in Hand', type: 'cash', balance: 11500.00, institution: 'Cash', isDefault: false, color: '#43845A' },
-]
-
-// Sample Savings Goals
-const sampleSavingsGoals = [
-  { id: 'sg-1', name: 'Emergency Vault', targetAmount: 150000.00, currentAmount: 45000.00, targetDate: '2026-12-31', icon: 'ShieldCheck', color: '#26A69A', notes: '6 months living expenses' },
-  { id: 'sg-2', name: 'Goa Vacation Trip', targetAmount: 35000.00, currentAmount: 22000.00, targetDate: '2026-11-28', icon: 'Palmtree', color: '#FFA726', notes: 'Flights and resort booking' },
-  { id: 'sg-3', name: 'MacBook M3 Upgrade', targetAmount: 120000.00, currentAmount: 65000.00, targetDate: '2027-02-15', icon: 'Laptop', color: '#AB47BC', notes: 'Work machine upgrade' },
-]
-
-// Sample Recurring Bills & Subscriptions
-const sampleRecurring = [
-  { id: 'rec-1', name: 'Netflix Premium (4K)', amount: 649.00, categoryId: 'cat-bills', frequency: 'monthly', nextBillingDate: '2026-11-14', status: 'active', autoPay: true },
-  { id: 'rec-2', name: 'High-Speed Fiber Wi-Fi', amount: 999.00, categoryId: 'cat-bills', frequency: 'monthly', nextBillingDate: '2026-11-10', status: 'active', autoPay: false },
-  { id: 'rec-3', name: 'Cult.fit Gym & Fitness', amount: 1500.00, categoryId: 'cat-health', frequency: 'monthly', nextBillingDate: '2026-11-25', status: 'active', autoPay: true },
-  { id: 'rec-4', name: 'Spotify Music Family', amount: 179.00, categoryId: 'cat-bills', frequency: 'monthly', nextBillingDate: '2026-11-05', status: 'paused', autoPay: false },
-]
-
-// Sample Reminders
-const sampleReminders = [
-  { id: 'rem-1', title: 'Pay Electricity & Water Bill', amount: 1850.00, dueDate: '2026-11-08', completed: false, categoryId: 'cat-bills', notes: 'Due before late fee penalty' },
-  { id: 'rem-2', title: 'Broadband Wi-Fi Payment', amount: 999.00, dueDate: '2026-11-10', completed: false, categoryId: 'cat-bills', notes: 'Airtel Fiber invoice' },
-  { id: 'rem-3', title: 'Car EMI Bank Deduction', amount: 9850.00, dueDate: '2026-11-15', completed: false, categoryId: 'cat-emi', notes: 'Ensure sufficient balance in HDFC' },
-]
-
-// Sample Debts
-const sampleDebts = [
-  { id: 'deb-1', personName: 'Rahul Sharma', type: 'receivable', amount: 3500.00, paidAmount: 1000.00, dueDate: '2026-11-10', notes: 'Weekend resort booking split', settled: false },
-  { id: 'deb-2', personName: 'Priya Patel', type: 'receivable', amount: 1250.00, paidAmount: 0.00, dueDate: '2026-11-15', notes: 'Concert passes advance booking', settled: false },
-  { id: 'deb-3', personName: 'Amit Verma', type: 'payable', amount: 2500.00, paidAmount: 1000.00, dueDate: '2026-11-12', notes: 'Dinner restaurant bill split', settled: false },
 ]
 
 export const useFinanceStore = create(
@@ -287,6 +82,9 @@ export const useFinanceStore = create(
       recurring: [],
       reminders: [],
       debts: [],
+      documents: [],
+      meetings: [],
+      wikiArticles: [],
 
 
       // UI state
@@ -325,6 +123,7 @@ export const useFinanceStore = create(
             totalBalance: 0.00,
             monthlyBudget: 0.00,
             transactions: [],
+            expenseGroups: [],
             friendsNotes: [],
             loans: [],
             notifications: [],
@@ -339,6 +138,9 @@ export const useFinanceStore = create(
             recurring: [],
             reminders: [],
             debts: [],
+            documents: [],
+            meetings: [],
+            wikiArticles: [],
           })
           // Synchronize from Supabase for this authenticated user
           setTimeout(() => get().syncWithSupabase(), 100)
@@ -382,6 +184,9 @@ export const useFinanceStore = create(
             remindersRes,
             notifsRes,
             groupsRes,
+            vaultRes,
+            meetingsRes,
+            wikiRes,
           ] = await Promise.allSettled([
             AccountService.getAccounts(),
             TransactionService.getTransactions(),
@@ -394,6 +199,9 @@ export const useFinanceStore = create(
             ReminderService.getReminders(),
             NotificationService.getNotifications(),
             GroupService.getGroups(),
+            VaultService.getDocuments(),
+            MeetingService.getMeetings(),
+            WikiService.getArticles(),
           ])
 
           const updates = {}
@@ -464,8 +272,8 @@ export const useFinanceStore = create(
           }
 
           // 3. Groups
-          if (groupsRes.status === 'fulfilled' && groupsRes.value && groupsRes.value.length > 0) {
-            updates.expenseGroups = groupsRes.value
+          if (groupsRes.status === 'fulfilled') {
+            updates.expenseGroups = groupsRes.value || []
           }
           if (categoriesRes.status === 'fulfilled' && categoriesRes.value && categoriesRes.value.length > 0) {
             updates.categories = categoriesRes.value
@@ -494,6 +302,15 @@ export const useFinanceStore = create(
           if (notifsRes.status === 'fulfilled' && notifsRes.value) {
             updates.notifications = notifsRes.value
           }
+          if (vaultRes.status === 'fulfilled' && vaultRes.value) {
+            updates.documents = vaultRes.value
+          }
+          if (meetingsRes.status === 'fulfilled' && meetingsRes.value) {
+            updates.meetings = meetingsRes.value
+          }
+          if (wikiRes.status === 'fulfilled' && wikiRes.value) {
+            updates.wikiArticles = wikiRes.value
+          }
 
           set((state) => ({ ...state, ...updates }))
         } catch (err) {
@@ -521,6 +338,7 @@ export const useFinanceStore = create(
           totalBalance: 0.00,
           monthlyBudget: 0.00,
           transactions: [],
+          expenseGroups: [],
           friendsNotes: [],
           loans: [],
           notifications: [],
@@ -535,6 +353,9 @@ export const useFinanceStore = create(
           recurring: [],
           reminders: [],
           debts: [],
+          documents: [],
+          meetings: [],
+          wikiArticles: [],
         })
       },
 
@@ -544,6 +365,7 @@ export const useFinanceStore = create(
           totalBalance: 0.00,
           monthlyBudget: 0.00,
           transactions: [],
+          expenseGroups: [],
           friendsNotes: [],
           loans: [],
           notifications: [],
@@ -558,37 +380,11 @@ export const useFinanceStore = create(
           recurring: [],
           reminders: [],
           debts: [],
+          documents: [],
+          meetings: [],
+          wikiArticles: [],
         }))
       },
-
-      // Load mock demo data for preview
-      loadSampleData: () => {
-        set({
-          totalBalance: 64250.00,
-          monthlyBudget: 45000.00,
-          categories: initialCategories,
-          transactions: initialTransactions,
-          friendsNotes: initialFriendsNotes,
-          loans: initialLoans,
-          notifications: initialNotifications,
-          accounts: sampleAccounts,
-          budgets: {
-            monthlyLimit: 45000.00,
-            categoryLimits: {
-              'cat-food': 8000,
-              'cat-rent': 18000,
-              'cat-transport': 3000,
-              'cat-bills': 4000,
-              'cat-shopping': 5000,
-            },
-          },
-          savingsGoals: sampleSavingsGoals,
-          recurring: sampleRecurring,
-          reminders: sampleReminders,
-          debts: sampleDebts,
-        })
-      },
-
 
       // Balance & Budget Actions
       updateTotalBalance: (balance) => set({ totalBalance: Number(balance) || 0 }),
@@ -1241,6 +1037,130 @@ export const useFinanceStore = create(
         )
       },
 
+      // Document Vault Actions
+      addDocument: async (docData) => {
+        const tempId = `doc-${Date.now()}`
+        const newDoc = {
+          ...docData,
+          id: tempId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        set((state) => ({ documents: [newDoc, ...state.documents] }))
+
+        VaultService.createDocument(newDoc).then((saved) => {
+          if (saved?.id) {
+            set((state) => ({
+              documents: state.documents.map((d) => (d.id === tempId ? { ...d, id: saved.id } : d)),
+            }))
+          }
+        }).catch((err) => console.warn('addDocument error:', err))
+      },
+      updateDocument: async (id, updates) => {
+        set((state) => ({
+          documents: state.documents.map((d) => (d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d)),
+        }))
+        if (id && !id.startsWith('doc-')) {
+          VaultService.updateDocument(id, updates).catch((err) => console.warn('updateDocument error:', err))
+        }
+      },
+      deleteDocument: async (id) => {
+        set((state) => ({
+          documents: state.documents.filter((d) => d.id !== id),
+        }))
+        if (id && !id.startsWith('doc-')) {
+          VaultService.deleteDocument(id).catch((err) => console.warn('deleteDocument error:', err))
+        }
+      },
+
+      // Meetings & Follow-ups Actions
+      addMeeting: async (meetingData) => {
+        const tempId = `meet-${Date.now()}`
+        const newMeeting = {
+          ...meetingData,
+          id: tempId,
+          status: meetingData.status || 'scheduled',
+          priority: meetingData.priority || 'medium',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        set((state) => ({ meetings: [newMeeting, ...state.meetings] }))
+
+        MeetingService.createMeeting(newMeeting).then((saved) => {
+          if (saved?.id) {
+            set((state) => ({
+              meetings: state.meetings.map((m) => (m.id === tempId ? { ...m, id: saved.id } : m)),
+            }))
+          }
+        }).catch((err) => console.warn('addMeeting error:', err))
+      },
+      updateMeeting: async (id, updates) => {
+        set((state) => ({
+          meetings: state.meetings.map((m) => (m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m)),
+        }))
+        if (id && !id.startsWith('meet-')) {
+          MeetingService.updateMeeting(id, updates).catch((err) => console.warn('updateMeeting error:', err))
+        }
+      },
+      deleteMeeting: async (id) => {
+        set((state) => ({
+          meetings: state.meetings.filter((m) => m.id !== id),
+        }))
+        if (id && !id.startsWith('meet-')) {
+          MeetingService.deleteMeeting(id).catch((err) => console.warn('deleteMeeting error:', err))
+        }
+      },
+      toggleMeetingStatus: async (id) => {
+        const current = get().meetings.find((m) => m.id === id)
+        if (!current) return
+        const nextStatus = current.status === 'completed' ? 'scheduled' : 'completed'
+        get().updateMeeting(id, { status: nextStatus })
+      },
+
+      // Personal Wiki & Knowledge Base Actions
+      addWikiArticle: async (articleData) => {
+        const tempId = `wiki-${Date.now()}`
+        const newArticle = {
+          ...articleData,
+          id: tempId,
+          tags: Array.isArray(articleData.tags) ? articleData.tags : [],
+          isPinned: Boolean(articleData.isPinned),
+          color: articleData.color || '#242E25',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        set((state) => ({ wikiArticles: [newArticle, ...state.wikiArticles] }))
+
+        WikiService.createArticle(newArticle).then((saved) => {
+          if (saved?.id) {
+            set((state) => ({
+              wikiArticles: state.wikiArticles.map((a) => (a.id === tempId ? { ...a, id: saved.id } : a)),
+            }))
+          }
+        }).catch((err) => console.warn('addWikiArticle error:', err))
+      },
+      updateWikiArticle: async (id, updates) => {
+        set((state) => ({
+          wikiArticles: state.wikiArticles.map((a) => (a.id === id ? { ...a, ...updates, updatedAt: new Date().toISOString() } : a)),
+        }))
+        if (id && !id.startsWith('wiki-')) {
+          WikiService.updateArticle(id, updates).catch((err) => console.warn('updateWikiArticle error:', err))
+        }
+      },
+      deleteWikiArticle: async (id) => {
+        set((state) => ({
+          wikiArticles: state.wikiArticles.filter((a) => a.id !== id),
+        }))
+        if (id && !id.startsWith('wiki-')) {
+          WikiService.deleteArticle(id).catch((err) => console.warn('deleteWikiArticle error:', err))
+        }
+      },
+      toggleWikiPin: async (id) => {
+        const current = get().wikiArticles.find((a) => a.id === id)
+        if (!current) return
+        get().updateWikiArticle(id, { isPinned: !current.isPinned })
+      },
+
       // Reset to fresh blank slate (clears both local store AND Supabase DB)
       resetAllData: async () => {
         // 1. Instantly reset local Zustand state & localStorage cache
@@ -1255,7 +1175,7 @@ export const useFinanceStore = create(
       }
     }),
     {
-      name: 'finwise-live-user-data', // fresh store namespace: cleans all old mock records for real users
+      name: 'finwise-v3-pure-db', // Completely clears any legacy mock records from browser localStorage
     }
   )
 )

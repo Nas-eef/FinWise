@@ -26,6 +26,9 @@ import { Categories } from './pages/Categories/Categories'
 import { Recurring } from './pages/Recurring/Recurring'
 import { Calendar } from './pages/Calendar/Calendar'
 import { ReceivablesPayables } from './pages/Receivables/ReceivablesPayables'
+import { DocumentVault } from './pages/Vault/DocumentVault'
+import { MeetingsManager } from './pages/Meetings/MeetingsManager'
+import { PersonalWiki } from './pages/Wiki/PersonalWiki'
 
 // Auth Pages
 import { Login } from './pages/Auth/Login'
@@ -208,6 +211,9 @@ export default function App() {
         <Route path="/friends-notes" element={<FriendsNotes />} />
         <Route path="/loans" element={<Loans />} />
         <Route path="/receivables" element={<ReceivablesPayables />} />
+        <Route path="/vault" element={<DocumentVault />} />
+        <Route path="/meetings" element={<MeetingsManager />} />
+        <Route path="/wiki" element={<PersonalWiki />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/notifications" element={<Notifications />} />

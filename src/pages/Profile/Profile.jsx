@@ -8,7 +8,8 @@ import {
   Settings as SettingsIcon, Bell, Users, Landmark,
   LogOut, LogIn, ChevronRight, Check, RefreshCw,
   BarChart2, PieChart, PiggyBank, Wallet, Tags,
-  Repeat, Calendar, ShieldCheck, Edit3, Trash2
+  Repeat, Calendar, ShieldCheck, Edit3, Trash2,
+  Shield, CalendarCheck, BookOpen
 } from 'lucide-react'
 
 export const Profile = () => {
@@ -21,6 +22,9 @@ export const Profile = () => {
   const transactions = useFinanceStore((state) => state.transactions)
   const loans = useFinanceStore((state) => state.loans)
   const friendsNotes = useFinanceStore((state) => state.friendsNotes)
+  const documents = useFinanceStore((state) => state.documents) || []
+  const meetings = useFinanceStore((state) => state.meetings) || []
+  const wikiArticles = useFinanceStore((state) => state.wikiArticles) || []
 
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState(user.name || '')
@@ -121,6 +125,30 @@ export const Profile = () => {
       icon: Landmark,
       path: '/loans',
       badge: `${loans.length} active`,
+    },
+  ]
+
+  const productivityPages = [
+    {
+      label: 'Document Vault',
+      desc: 'Secure certificates, ID cards, warranty & important PDFs',
+      icon: Shield,
+      path: '/vault',
+      badge: `${documents.length} docs`,
+    },
+    {
+      label: 'Meeting & Follow-up Manager',
+      desc: 'Follow-up dates, contact phone/email & discussion notes',
+      icon: CalendarCheck,
+      path: '/meetings',
+      badge: `${meetings.filter((m) => m.status !== 'completed').length} active`,
+    },
+    {
+      label: 'Personal Wiki & Knowledge',
+      desc: 'Tech notes, business concepts, cheat sheets & work docs',
+      icon: BookOpen,
+      path: '/wiki',
+      badge: `${wikiArticles.length} docs`,
     },
   ]
 
@@ -266,6 +294,45 @@ export const Profile = () => {
                       </p>
                       {item.badge && (
                         <span className="px-1.5 py-0.2 bg-mint/40 text-forest text-[9px] font-bold rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10.5px] text-mutedgreen truncate">{item.desc}</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-mutedgreen group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Productivity & Knowledge Hub */}
+      <div>
+        <p className="text-[11px] font-black uppercase tracking-wider text-mutedgreen px-1 mb-2">
+          Vault & Productivity Hub
+        </p>
+        <div className="bg-white border border-brand-border/80 rounded-card shadow-subtle divide-y divide-brand-border/50 overflow-hidden">
+          {productivityPages.map((item) => {
+            const Icon = item.icon
+            return (
+              <div
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className="flex items-center justify-between p-3 hover:bg-[#FAFBF9] cursor-pointer transition-colors group active:bg-mint/20"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="w-8 h-8 rounded-xl bg-forest/10 flex items-center justify-center text-forest shrink-0">
+                    <Icon className="w-4 h-4 text-forest" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-forest truncate group-hover:text-forest/80">
+                        {item.label}
+                      </p>
+                      {item.badge && (
+                        <span className="px-1.5 py-0.2 bg-forest text-mint text-[9px] font-bold rounded-full">
                           {item.badge}
                         </span>
                       )}
