@@ -2,11 +2,11 @@ import React, { useState, useRef } from 'react'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { VaultService } from '../../services/vault.service'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
-import { downloadFile } from '../../utils/fileDownloader'
+import { downloadFile, shareFile } from '../../utils/fileDownloader'
 import {
   FileText, Shield, Award, FileCheck, Tag, Upload, Search,
   Download, Eye, Trash2, Edit3, Plus, X, Calendar, AlertCircle,
-  ExternalLink, File, Check, ZoomIn
+  ExternalLink, File, Check, ZoomIn, Share2
 } from 'lucide-react'
 
 const CATEGORIES = [
@@ -205,6 +205,14 @@ export const DocumentVault = () => {
     })
   }
 
+  const handleShare = async (doc) => {
+    if (!doc?.fileUrl) return
+    await shareFile({
+      fileUrl: doc.fileUrl,
+      fileName: doc.fileName || `${doc.title}.pdf`,
+    })
+  }
+
   const formatFileSize = (bytes) => {
     if (!bytes || bytes === 0) return '0 B'
     const k = 1024
@@ -388,6 +396,13 @@ export const DocumentVault = () => {
 
                   {/* Actions Dropdown / Menu */}
                   <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleShare(doc)}
+                      className="p-1.5 text-mutedgreen hover:text-forest rounded-lg hover:bg-brand-bg transition-colors"
+                      title="Share document"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => handleOpenEdit(doc)}
                       className="p-1.5 text-mutedgreen hover:text-forest rounded-lg hover:bg-brand-bg transition-colors"
@@ -648,6 +663,13 @@ export const DocumentVault = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleShare(previewDoc)}
+                  className="p-1.5 bg-mint/30 text-mint rounded-lg hover:bg-mint hover:text-forest transition-colors"
+                  title="Share File"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => handleDownload(previewDoc)}
                   className="p-1.5 bg-mint text-forest rounded-lg hover:bg-white transition-colors"
