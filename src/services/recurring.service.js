@@ -87,6 +87,32 @@ export const RecurringService = {
   },
 
   /**
+   * Update recurring payment
+   */
+  async updateRecurring(id, updates) {
+    try {
+      const payload = { updated_at: new Date().toISOString() }
+      if (updates.name) payload.name = updates.name.trim()
+      if (updates.amount !== undefined) payload.amount = Number(updates.amount)
+      if (updates.frequency) payload.frequency = updates.frequency
+      if (updates.nextBillingDate) payload.next_due_date = updates.nextBillingDate
+      if (updates.autoPay !== undefined) payload.reminder_enabled = Boolean(updates.autoPay)
+
+      const { data, error } = await supabase
+        .from('recurring_payments')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (err) {
+      throw handleSupabaseError(err, 'Failed to update recurring payment')
+    }
+  },
+
+  /**
    * Delete recurring payment
    */
   async deleteRecurring(id) {

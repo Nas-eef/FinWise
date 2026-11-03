@@ -11,8 +11,9 @@ export const formatCurrency = (amount, currency = 'INR') => {
   }
   const symbol = symbols[currency] || '₹'
   const locale = currency === 'INR' ? 'en-IN' : 'en-US'
+  const sign = num < 0 ? '-' : ''
 
-  return `${symbol}${Math.abs(num).toLocaleString(locale, {
+  return `${sign}${symbol}${Math.abs(num).toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`

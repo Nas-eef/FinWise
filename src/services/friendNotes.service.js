@@ -174,6 +174,36 @@ export const FriendNotesService = {
   },
 
   /**
+   * Update existing friend note
+   */
+  async updateNote(id, type, updates) {
+    try {
+      const isToGet = type === 'to_get'
+      const targetTable = isToGet ? 'receivables' : 'payables'
+
+      const payload = {
+        updated_at: new Date().toISOString(),
+      }
+      if (updates.personName) payload.person_name = updates.personName.trim()
+      if (updates.amount !== undefined) payload.amount = Number(updates.amount)
+      if (updates.dueDate !== undefined) payload.due_date = updates.dueDate || null
+      if (updates.note !== undefined) payload.description = updates.note
+
+      const { data, error } = await supabase
+        .from(targetTable)
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (err) {
+      throw handleSupabaseError(err, 'Failed to update friend note')
+    }
+  },
+
+  /**
    * Delete friend note
    */
   async deleteNote(id, type) {

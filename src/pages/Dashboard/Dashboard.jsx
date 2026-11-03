@@ -41,10 +41,13 @@ export const Dashboard = () => {
       {/* 1. Minimal Balance Hero */}
       <BalanceCard />
 
-      {/* 2. Quick Action Grid */}
+      {/* 2. Highlighted Monthly Spending Limit (First Priority Card) */}
+      <BudgetProgressCard />
+
+      {/* 3. Quick Action Grid */}
       <QuickActionGrid onOpenFriendNote={() => setIsAddFriendNoteOpen(true)} />
 
-      {/* 3. Expense Groups (Purposes like PG Expenses, Personal, etc.) */}
+      {/* 4. Expense Groups */}
       <ExpenseGroupsSection />
 
       {/* 4. Loans & EMI 1-Day Notification Alert Banner */}
@@ -141,10 +144,7 @@ export const Dashboard = () => {
         )}
       </div>
 
-      {/* 5. Minimal Monthly Budget Progress */}
-      <BudgetProgressCard />
-
-      {/* 6. Recent Activity */}
+      {/* 5. Recent Activity */}
       <div className="w-full space-y-2">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-bold uppercase tracking-wider text-mutedgreen">Recent Activity</h3>

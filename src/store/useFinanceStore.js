@@ -271,7 +271,7 @@ export const useFinanceStore = create(
 
       // Core Entities (empty by default for clean fresh account)
       categories: initialCategories,
-      expenseGroups: defaultExpenseGroups,
+      expenseGroups: [],
       transactions: [],
       friendsNotes: [],
       loans: [],
@@ -605,6 +605,24 @@ export const useFinanceStore = create(
           budget: Number(group.budget) || 0,
         }
         set((state) => ({ expenseGroups: [...state.expenseGroups, newGroup] }))
+
+        // Persist directly to Supabase to obtain real database UUID
+        GroupService.createGroup(group)
+          .then((saved) => {
+            if (saved?.id) {
+              set((state) => ({
+                expenseGroups: state.expenseGroups.map((g) =>
+                  g.id === id ? { ...g, id: saved.id } : g
+                ),
+                // Update any transactions referencing this group
+                transactions: state.transactions.map((t) =>
+                  t.groupId === id ? { ...t, groupId: saved.id } : t
+                ),
+              }))
+            }
+          })
+          .catch((err) => console.warn('Supabase createGroup note:', err))
+
         return newGroup
       },
       deleteExpenseGroup: (id) => {
@@ -612,6 +630,11 @@ export const useFinanceStore = create(
           expenseGroups: state.expenseGroups.filter((g) => g.id !== id),
           transactions: state.transactions.map((t) => (t.groupId === id ? { ...t, groupId: null } : t)),
         }))
+        if (id && !id.startsWith('grp-')) {
+          GroupService.deleteGroup(id).catch((err) =>
+            console.warn('Supabase deleteGroup note:', err)
+          )
+        }
       },
 
       // Transactions
@@ -724,9 +747,18 @@ export const useFinanceStore = create(
       },
 
       updateFriendsNote: (id, updated) => {
+        const current = get().friendsNotes.find((n) => n.id === id)
+        const noteType = updated.type || current?.type || 'to_get'
+
         set((state) => ({
           friendsNotes: state.friendsNotes.map((n) => (n.id === id ? { ...n, ...updated } : n)),
         }))
+
+        if (id && !id.startsWith('fn-')) {
+          FriendNotesService.updateNote(id, noteType, updated).catch((err) =>
+            console.warn('Supabase updateFriendsNote note:', err)
+          )
+        }
       },
 
       recordFriendsPayment: (id, amountPaid) => {
@@ -989,6 +1021,11 @@ export const useFinanceStore = create(
         set((state) => ({
           savingsGoals: state.savingsGoals.map((g) => (g.id === id ? { ...g, ...updated } : g)),
         }))
+        if (id && !id.startsWith('sg-')) {
+          SavingsService.updateSavingsGoal(id, updated).catch((err) =>
+            console.warn('Supabase updateSavingsGoal note:', err)
+          )
+        }
       },
       deleteGoal: (id) => {
         set((state) => ({
@@ -1090,6 +1127,11 @@ export const useFinanceStore = create(
         set((state) => ({
           recurring: state.recurring.map((r) => (r.id === id ? { ...r, ...updated } : r)),
         }))
+        if (id && !id.startsWith('rec-')) {
+          RecurringService.updateRecurring(id, updated).catch((err) =>
+            console.warn('Supabase updateRecurring note:', err)
+          )
+        }
       },
       deleteRecurring: (id) => {
         set((state) => ({

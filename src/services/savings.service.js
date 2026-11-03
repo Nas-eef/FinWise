@@ -123,6 +123,34 @@ export const SavingsService = {
   },
 
   /**
+   * Update savings goal details
+   */
+  async updateSavingsGoal(id, updates) {
+    try {
+      const payload = { updated_at: new Date().toISOString() }
+      if (updates.name) payload.name = updates.name.trim()
+      if (updates.targetAmount !== undefined) payload.target_amount = Number(updates.targetAmount)
+      if (updates.currentAmount !== undefined) payload.current_amount = Number(updates.currentAmount)
+      if (updates.targetDate !== undefined) payload.target_date = updates.targetDate || null
+      if (updates.icon) payload.icon = updates.icon
+      if (updates.color) payload.color = updates.color
+      if (updates.description !== undefined) payload.description = updates.description
+
+      const { data, error } = await supabase
+        .from('savings_goals')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (err) {
+      throw handleSupabaseError(err, 'Failed to update savings goal')
+    }
+  },
+
+  /**
    * Delete savings goal
    */
   async deleteSavingsGoal(id) {

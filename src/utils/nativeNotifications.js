@@ -1,23 +1,75 @@
+import { LocalNotifications } from '@capacitor/local-notifications'
+import { Capacitor } from '@capacitor/core'
+
 /**
  * Native Mobile & Web Notification Utility
- * Provides seamless bridge between Web Notifications and Capacitor Mobile Local Notifications.
+ * Provides true OS push/phone notifications on Android/iOS via Capacitor Local Notifications,
+ * and standard Web Notification API fallback on desktop browsers.
  */
 
+/**
+ * Trigger an immediate Phone Notification
+ */
+export const triggerNativeNotification = async ({ title, body, id }) => {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      const perm = await LocalNotifications.requestPermissions()
+      if (perm.display === 'granted') {
+        const notifId =
+          Math.floor(Math.abs(Number(String(id || '').replace(/\D/g, '').slice(-8)))) ||
+          Math.floor(Math.random() * 100000)
+
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: notifId,
+              title: title || 'FinWise Alert',
+              body: body || 'You have a new update in FinWise.',
+              schedule: { at: new Date(Date.now() + 500) }, // 500ms immediate
+              sound: 'default',
+            },
+          ],
+        })
+        return true
+      }
+    }
+
+    // Desktop browser fallback
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body })
+      } else if (Notification.permission !== 'denied') {
+        const perm = await Notification.requestPermission()
+        if (perm === 'granted') {
+          new Notification(title, { body })
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[NOTIF] Could not send phone notification:', err)
+  }
+  return false
+}
+
+/**
+ * Schedule 1-Day Before EMI Notification for Phones
+ */
 export const scheduleEmiNotification = async ({ id, title, message, dueDate }) => {
   try {
-    // Calculate trigger time: 1 day before due date at 08:00 AM
+    // Trigger time: 1 day before due date at 08:00 AM
     const due = new Date(dueDate)
     const alertDate = new Date(due)
     alertDate.setDate(alertDate.getDate() - 1)
     alertDate.setHours(8, 0, 0, 0) // 08:00 AM
 
-    // 1. When running inside Capacitor Native Mobile App (Android / iOS)
-    const LocalNotifications = window?.Capacitor?.Plugins?.LocalNotifications
-    if (LocalNotifications) {
+    // If the 1-day before alert is in the past, alert today in 5 seconds
+    const scheduleAt = alertDate > new Date() ? alertDate : new Date(Date.now() + 5000)
+
+    if (Capacitor.isNativePlatform()) {
       const perm = await LocalNotifications.requestPermissions()
       if (perm.display === 'granted') {
         const notifId =
-          Math.floor(Math.abs(Number(String(id).replace(/\D/g, '').slice(-8)))) ||
+          Math.floor(Math.abs(Number(String(id || '').replace(/\D/g, '').slice(-8)))) ||
           Math.floor(Math.random() * 100000)
 
         await LocalNotifications.schedule({
@@ -26,27 +78,25 @@ export const scheduleEmiNotification = async ({ id, title, message, dueDate }) =
               id: notifId,
               title: title || '⏰ 1-Day EMI Due Alert',
               body: message,
-              schedule: { at: alertDate },
+              schedule: { at: scheduleAt },
               sound: 'default',
-              actionTypeId: '',
               extra: { loanId: id, dueDate },
             },
           ],
         })
-        console.log(`[CAPACITOR MOBILE] Scheduled native notification for ${alertDate.toISOString()}`)
+        console.log(`[PHONE NOTIF] Scheduled native phone notification for ${scheduleAt.toISOString()}`)
         return true
       }
     }
 
-    // 2. When running on Web Browser
-    if ('Notification' in window) {
+    // Web Browser fallback
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'default') {
         Notification.requestPermission().catch(() => {})
       }
-      console.log(`[WEB NOTIF] 1-Day alert registered for ${alertDate.toDateString()}: ${message}`)
     }
   } catch (err) {
-    console.warn('[NOTIF WARNING] Could not schedule native notification:', err.message)
+    console.warn('[NOTIF] Could not schedule EMI notification:', err)
   }
   return false
 }

@@ -17,9 +17,11 @@ export const Budgets = () => {
   const currentMonthPrefix = new Date().toISOString().substring(0, 7) // 2026-11
   const monthlyTransactions = transactions.filter(t => t.type === 'expense' && t.date && t.date.startsWith(currentMonthPrefix))
 
+  const monthlyBudget = useFinanceStore((state) => state.monthlyBudget)
+
   // Total spent
   const totalSpent = monthlyTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
-  const totalLimit = budgets.monthlyLimit || 4500
+  const totalLimit = Number(budgets.monthlyLimit) || Number(monthlyBudget) || 0
   const totalRemaining = Math.max(0, totalLimit - totalSpent)
   const totalPercentage = Math.round((totalSpent / totalLimit) * 100) || 0
 
