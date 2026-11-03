@@ -45,18 +45,18 @@ export const formatDate = (dateString, formatStr = 'medium') => {
   })
 }
 
-export const exportToCSV = (data, filename = 'transactions.csv') => {
+import { downloadFile } from './fileDownloader'
+
+export const exportToCSV = async (data, filename = 'transactions.csv') => {
   if (!data || !data.length) return
   const headers = Object.keys(data[0]).join(',')
   const rows = data.map(obj => 
     Object.values(obj).map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(',')
   )
-  const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n')
-  const encodedUri = encodeURI(csvContent)
-  const link = document.createElement('a')
-  link.setAttribute('href', encodedUri)
-  link.setAttribute('download', filename)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  const csvText = [headers, ...rows].join('\n')
+  await downloadFile({
+    fileName: filename,
+    textContent: csvText,
+    mimeType: 'text/csv;charset=utf-8',
+  })
 }

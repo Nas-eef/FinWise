@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { VaultService } from '../../services/vault.service'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
+import { downloadFile } from '../../utils/fileDownloader'
 import {
   FileText, Shield, Award, FileCheck, Tag, Upload, Search,
   Download, Eye, Trash2, Edit3, Plus, X, Calendar, AlertCircle,
@@ -195,14 +196,13 @@ export const DocumentVault = () => {
     }
   }
 
-  const handleDownload = (doc) => {
-    if (!doc.fileUrl) return
-    const a = document.createElement('a')
-    a.href = doc.fileUrl
-    a.download = doc.fileName || `${doc.title}.pdf`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+  const handleDownload = async (doc) => {
+    if (!doc?.fileUrl) return
+    await downloadFile({
+      fileUrl: doc.fileUrl,
+      fileName: doc.fileName || `${doc.title}.pdf`,
+      mimeType: doc.fileType || 'application/octet-stream',
+    })
   }
 
   const formatFileSize = (bytes) => {

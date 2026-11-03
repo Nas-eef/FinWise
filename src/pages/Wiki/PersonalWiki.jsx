@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
+import { downloadFile } from '../../utils/fileDownloader'
 import {
   BookOpen, Pin, PinOff, Search, Plus, Edit3, Trash2, X,
   Copy, Check, Download, Tag, FileText, Sparkles, ChevronRight,
@@ -178,18 +179,13 @@ export const PersonalWiki = () => {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  const handleExportMarkdown = (article) => {
-    const blob = new Blob([`# ${article.title}\n\nCategory: ${article.category}\nTags: ${(article.tags || []).join(', ')}\n\n---\n\n${article.content}`], {
-      type: 'text/markdown;charset=utf-8',
+  const handleExportMarkdown = async (article) => {
+    const markdownText = `# ${article.title}\n\nCategory: ${article.category}\nTags: ${(article.tags || []).join(', ')}\n\n---\n\n${article.content}`
+    await downloadFile({
+      fileName: `${article.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.md`,
+      textContent: markdownText,
+      mimeType: 'text/markdown;charset=utf-8',
     })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${article.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
   }
 
   // Simple Markdown-style visual formatter
