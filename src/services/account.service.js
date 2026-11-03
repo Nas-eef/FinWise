@@ -31,6 +31,26 @@ export const AccountService = {
   },
 
   /**
+   * Ensure user has at least one default account in Supabase
+   */
+  async ensureDefaultAccount() {
+    try {
+      const accounts = await this.getAccounts()
+      if (accounts && accounts.length > 0) return accounts[0]
+
+      return await this.createAccount({
+        name: 'Primary Bank Account',
+        type: 'bank',
+        institution: 'Primary Account',
+        balance: 0.00,
+        isDefault: true,
+      })
+    } catch {
+      return null
+    }
+  },
+
+  /**
    * Create new account
    */
   async createAccount(accData) {

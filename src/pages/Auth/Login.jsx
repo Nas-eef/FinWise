@@ -4,6 +4,8 @@ import { useFinanceStore } from '../../store/useFinanceStore'
 import { supabase } from '../../utils/supabase'
 import { AuthService } from '../../services/auth.service'
 import { Eye, EyeOff, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 
 export const Login = () => {
   const navigate = useNavigate()
@@ -33,20 +35,29 @@ export const Login = () => {
     }
   }, [navigate, isAuth])
 
-  // Google OAuth Login
+  // Google OAuth Login (Native Capacitor mobile app vs Web SPA)
   const handleGoogleLogin = async () => {
     setError('')
     setIsGoogleLoading(true)
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      const isNative = Capacitor.isNativePlatform()
+      const redirectTo = isNative ? 'com.finwise.app://google-auth' : `${window.location.origin}/`
+
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo,
+          skipBrowserRedirect: isNative,
         },
       })
       if (oauthError) throw oauthError
+
+      if (isNative && data?.url) {
+        await Browser.open({ url: data.url, windowName: '_self' })
+      }
     } catch (err) {
       setError(err.message || 'Google sign-in failed. Please try again.')
+    } finally {
       setIsGoogleLoading(false)
     }
   }

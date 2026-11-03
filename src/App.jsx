@@ -5,6 +5,9 @@ import { AuthLayout } from './layouts/AuthLayout'
 import { SplashScreen } from './components/common/SplashScreen'
 import { supabase } from './utils/supabase'
 import { useFinanceStore } from './store/useFinanceStore'
+import { App as CapApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
+import { Capacitor } from '@capacitor/core'
 
 // Main Pages
 import { Dashboard } from './pages/Dashboard/Dashboard'
@@ -105,9 +108,57 @@ export default function App() {
       }
     })
 
+    // 3. Listen for Capacitor deep links on native mobile (Google OAuth return)
+    let appUrlHandler = null
+    if (Capacitor.isNativePlatform()) {
+      appUrlHandler = CapApp.addListener('appUrlOpen', async ({ url }) => {
+        try {
+          await Browser.close().catch(() => {})
+          if (url && (url.includes('access_token') || url.includes('code='))) {
+            const rawUrl = url.replace('com.finwise.app://', 'https://localhost/')
+            const parsed = new URL(rawUrl)
+
+            const hash = parsed.hash.startsWith('#') ? parsed.hash.substring(1) : parsed.hash
+            const hashParams = new URLSearchParams(hash)
+            const searchParams = parsed.searchParams
+
+            const accessToken = hashParams.get('access_token') || searchParams.get('access_token')
+            const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token')
+            const code = searchParams.get('code') || hashParams.get('code')
+
+            if (accessToken && refreshToken) {
+              const { data } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              })
+              if (data?.session) {
+                localStorage.setItem('finance_access_token', data.session.access_token)
+                setUser({
+                  name: data.session.user.user_metadata?.full_name || data.session.user.email?.split('@')[0],
+                  email: data.session.user.email,
+                })
+              }
+            } else if (code) {
+              const { data } = await supabase.auth.exchangeCodeForSession(code)
+              if (data?.session) {
+                localStorage.setItem('finance_access_token', data.session.access_token)
+                setUser({
+                  name: data.session.user.user_metadata?.full_name || data.session.user.email?.split('@')[0],
+                  email: data.session.user.email,
+                })
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Capacitor OAuth callback handling error:', err)
+        }
+      })
+    }
+
     return () => {
       isMounted = false
       subscription?.unsubscribe()
+      appUrlHandler?.then((h) => h.remove()).catch(() => {})
     }
   }, [setUser])
 

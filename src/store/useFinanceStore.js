@@ -13,24 +13,29 @@ import {
   RecurringService,
   ReminderService,
   NotificationService,
+  GroupService,
 } from '../services'
-
 
 const initialCategories = [
   // Expense
-  { id: 'cat-food', name: 'Food & Dining', type: 'expense', icon: 'Utensils', color: '#FF7043' },
-  { id: 'cat-transport', name: 'Transportation', type: 'expense', icon: 'Car', color: '#42A5F5' },
-  { id: 'cat-shopping', name: 'Shopping', type: 'expense', icon: 'ShoppingBag', color: '#AB47BC' },
-  { id: 'cat-rent', name: 'Rent & Housing', type: 'expense', icon: 'Home', color: '#26A69A' },
-  { id: 'cat-bills', name: 'Bills & Utilities', type: 'expense', icon: 'Zap', color: '#FFA726' },
-  { id: 'cat-health', name: 'Health & Medical', type: 'expense', icon: 'HeartPulse', color: '#EF5350' },
-  { id: 'cat-personal', name: 'Personal Care', type: 'expense', icon: 'Sparkles', color: '#EC407A' },
-  { id: 'cat-emi', name: 'Loans & EMI', type: 'expense', icon: 'Landmark', color: '#78909C' },
-  { id: 'cat-other-exp', name: 'Other Expenses', type: 'expense', icon: 'MoreHorizontal', color: '#7C827C' },
+  { id: '0f921730-0caa-4750-9a6e-8d0cbb429a15', name: 'Food & Dining', type: 'expense', icon: 'Utensils', color: '#FF7043' },
+  { id: '576c7160-13e7-438d-a9ee-e49e557ac2d6', name: 'Transportation', type: 'expense', icon: 'Car', color: '#42A5F5' },
+  { id: '6e9f9e76-4322-4fa7-a8ea-2aac071c4b42', name: 'Shopping', type: 'expense', icon: 'ShoppingBag', color: '#AB47BC' },
+  { id: '24018b63-b67b-4f87-a248-eb24c5e75cc6', name: 'Rent & Housing', type: 'expense', icon: 'Home', color: '#26A69A' },
+  { id: '51d3b94f-42e1-4ee4-8caf-3ed6c7ccae8c', name: 'Bills & Utilities', type: 'expense', icon: 'Zap', color: '#FFA726' },
+  { id: 'b41dac50-6ab2-4d8b-9fd2-5eedd3c502ba', name: 'Health & Medical', type: 'expense', icon: 'HeartPulse', color: '#EF5350' },
+  { id: '2769218b-41de-472a-83a3-2cf1e48d13e2', name: 'Entertainment', type: 'expense', icon: 'Film', color: '#8D6E63' },
+  { id: '6c561752-6d71-40a5-99a6-9c6f07c41340', name: 'Education', type: 'expense', icon: 'GraduationCap', color: '#5C6BC0' },
+  { id: '334cccb0-bc4f-440c-98a8-a5f081f2a0d6', name: 'Personal Care', type: 'expense', icon: 'Sparkles', color: '#EC407A' },
+  { id: 'a388b235-8d71-4d26-8218-3ff8cdcc30bd', name: 'Loans & EMI', type: 'expense', icon: 'Landmark', color: '#78909C' },
+  { id: '06e496f1-2829-4a5d-bbed-2e81c0589525', name: 'Other Expenses', type: 'expense', icon: 'MoreHorizontal', color: '#7C827C' },
   // Income
-  { id: 'cat-salary', name: 'Salary', type: 'income', icon: 'Briefcase', color: '#43845A' },
-  { id: 'cat-freelance', name: 'Freelancing / Work', type: 'income', icon: 'Laptop', color: '#8AAB8F' },
-  { id: 'cat-other-inc', name: 'Other Income', type: 'income', icon: 'PlusCircle', color: '#689F38' },
+  { id: '4c20a5bc-1772-40ca-a9c2-5711e8e58879', name: 'Salary', type: 'income', icon: 'Briefcase', color: '#43845A' },
+  { id: 'd3c6b477-f929-4ba8-bc59-23b19b3fa7a6', name: 'Freelancing / Work', type: 'income', icon: 'Laptop', color: '#8AAB8F' },
+  { id: '9226b944-9e8e-4c3b-95da-55fc012051dc', name: 'Business & Sales', type: 'income', icon: 'Building2', color: '#2E7D32' },
+  { id: 'fc6b4204-1ce4-498c-96eb-702cdbfb7243', name: 'Rental Income', type: 'income', icon: 'Building', color: '#558B2F' },
+  { id: 'af44ec5d-c37e-4f4a-b677-ce317efeaec2', name: 'Investments & Dividends', type: 'income', icon: 'TrendingUp', color: '#00ACC1' },
+  { id: '10a59878-c625-4d37-b7f9-b492053c2ee6', name: 'Other Income', type: 'income', icon: 'PlusCircle', color: '#689F38' },
 ]
 
 const initialTransactions = [
@@ -288,13 +293,19 @@ export const useFinanceStore = create(
       // Update User
       updateUser: (updated) => set((state) => ({ user: { ...state.user, ...updated } })),
 
-      // Switch or login user (starts completely FRESH for new account)
+      // Switch or login user (preserves user data across app restarts & offline sessions)
       setUser: (userData) => {
         const state = get()
         const targetEmail = userData?.email || userData?.id || 'authenticated'
-        const isNewUser = state.currentUserId !== targetEmail
+        
+        // Only reset if an existing authenticated user logs out and a DIFFERENT user logs in
+        const isSwitchingAccount = Boolean(
+          state.currentUserId &&
+          state.currentUserId !== targetEmail &&
+          state.user?.isAuthenticated
+        )
 
-        if (isNewUser) {
+        if (isSwitchingAccount) {
           set({
             currentUserId: targetEmail,
             user: {
@@ -327,9 +338,17 @@ export const useFinanceStore = create(
           // Synchronize from Supabase for this authenticated user
           setTimeout(() => get().syncWithSupabase(), 100)
         } else {
-          set({
-            user: { ...state.user, ...userData, isAuthenticated: true }
-          })
+          // Same user, re-opening app, or initial launch: PRESERVE ALL DATA!
+          set((s) => ({
+            currentUserId: targetEmail,
+            user: {
+              ...s.user,
+              ...userData,
+              name: userData?.name || userData?.full_name || s.user?.name || targetEmail.split('@')[0],
+              email: userData?.email || s.user?.email || targetEmail,
+              isAuthenticated: true,
+            },
+          }))
           setTimeout(() => get().syncWithSupabase(), 100)
         }
       },
@@ -339,7 +358,8 @@ export const useFinanceStore = create(
        */
       syncWithSupabase: async () => {
         try {
-          const { data: { user } } = await supabase.auth.getUser()
+          const { data: sessionData } = await supabase.auth.getSession()
+          const user = sessionData?.session?.user || (await supabase.auth.getUser()).data?.user
           if (!user) return
 
           const [
@@ -353,6 +373,7 @@ export const useFinanceStore = create(
             recurringRes,
             remindersRes,
             notifsRes,
+            groupsRes,
           ] = await Promise.allSettled([
             AccountService.getAccounts(),
             TransactionService.getTransactions(),
@@ -364,26 +385,67 @@ export const useFinanceStore = create(
             RecurringService.getRecurring(),
             ReminderService.getReminders(),
             NotificationService.getNotifications(),
+            GroupService.getGroups(),
           ])
 
           const updates = {}
-          if (accountsRes.status === 'fulfilled' && accountsRes.value && accountsRes.value.length > 0) {
-            updates.accounts = accountsRes.value
-            const totalAccBal = accountsRes.value.reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
-            updates.totalBalance = Math.round(totalAccBal * 100) / 100
+
+          // 1. Accounts
+          if (accountsRes.status === 'fulfilled') {
+            if (accountsRes.value && accountsRes.value.length > 0) {
+              updates.accounts = accountsRes.value
+              const totalAccBal = accountsRes.value.reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
+              updates.totalBalance = Math.round(totalAccBal * 100) / 100
+            } else {
+              // Automatically ensure at least one default account in Supabase
+              AccountService.ensureDefaultAccount().then((acc) => {
+                if (acc) set((s) => ({ accounts: [acc] }))
+              }).catch(() => {})
+            }
           }
-          if (txsRes.status === 'fulfilled' && txsRes.value) {
-            updates.transactions = txsRes.value
-            // If total balance was not derived from accounts, calculate net ledger from transactions
+
+          // 2. Transactions
+          if (txsRes.status === 'fulfilled' && Array.isArray(txsRes.value)) {
+            const dbTxs = txsRes.value
+            const localTxs = get().transactions || []
+            const unsynced = localTxs.filter((t) => typeof t.id === 'string' && t.id.startsWith('tx-'))
+
+            if (unsynced.length > 0) {
+              // Attempt to back-sync local transactions to Supabase in background
+              unsynced.forEach((localTx) => {
+                TransactionService.createTransaction(localTx)
+                  .then((saved) => {
+                    if (saved?.id) {
+                      set((s) => ({
+                        transactions: s.transactions.map((tx) =>
+                          tx.id === localTx.id ? { ...tx, id: saved.id, synced: true } : tx
+                        ),
+                      }))
+                    }
+                  })
+                  .catch((err) => console.warn('Background sync failed for tx:', localTx.id, err))
+              })
+            }
+
+            const dbIds = new Set(dbTxs.map((t) => t.id))
+            const stillUnsynced = unsynced.filter((t) => !dbIds.has(t.id))
+            updates.transactions = [...stillUnsynced, ...dbTxs]
+
+            // Recalculate balance if not already derived from accounts
             if (updates.totalBalance === undefined) {
               let net = 0
-              txsRes.value.forEach((t) => {
+              updates.transactions.forEach((t) => {
                 const amt = Number(t.amount) || 0
                 if (t.type === 'income' || t.type === 'refund') net += amt
                 else if (t.type === 'expense') net -= amt
               })
               updates.totalBalance = Math.round(net * 100) / 100
             }
+          }
+
+          // 3. Groups
+          if (groupsRes.status === 'fulfilled' && groupsRes.value && groupsRes.value.length > 0) {
+            updates.expenseGroups = groupsRes.value
           }
           if (categoriesRes.status === 'fulfilled' && categoriesRes.value && categoriesRes.value.length > 0) {
             updates.categories = categoriesRes.value
@@ -536,23 +598,37 @@ export const useFinanceStore = create(
         const amount = Number(tx.amount) || 0
         const isExpense = tx.type === 'expense'
 
+        // 1. Instant optimistic local update (works offline immediately)
         set((state) => ({
-          transactions: [{ ...tx, id, groupId: tx.groupId || null }, ...state.transactions],
+          transactions: [{ ...tx, id, groupId: tx.groupId || null, synced: false }, ...state.transactions],
           totalBalance: Math.round((state.totalBalance + (isExpense ? -amount : amount)) * 100) / 100,
           isAddTransactionOpen: false,
           transactionToEdit: null,
         }))
 
-        // Direct Supabase persist
+        // 2. Direct Supabase persist
         TransactionService.createTransaction(tx)
           .then((saved) => {
             if (saved?.id) {
               set((state) => ({
-                transactions: state.transactions.map((t) => (t.id === id ? { ...t, id: saved.id } : t)),
+                transactions: state.transactions.map((t) =>
+                  t.id === id ? { ...t, id: saved.id, synced: true } : t
+                ),
               }))
+              // Refresh accounts from Supabase so database trigger balance is in sync
+              AccountService.getAccounts()
+                .then((accs) => {
+                  if (accs && accs.length > 0) {
+                    const total = accs.reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
+                    set({ accounts: accs, totalBalance: Math.round(total * 100) / 100 })
+                  }
+                })
+                .catch(() => {})
             }
           })
-          .catch((err) => console.warn('Supabase createTransaction note:', err))
+          .catch((err) => {
+            console.error('Direct Supabase transaction insert error:', err)
+          })
       },
 
       updateTransaction: (id, updated) => {
