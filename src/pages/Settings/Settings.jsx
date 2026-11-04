@@ -6,11 +6,13 @@ export const Settings = () => {
   const user = useFinanceStore((state) => state.user)
   const updateUser = useFinanceStore((state) => state.updateUser)
   const monthlyBudget = useFinanceStore((state) => state.monthlyBudget)
-  const updateMonthlyBudget = useFinanceStore((state) => state.updateMonthlyBudget)
+  const budgets = useFinanceStore((state) => state.budgets)
+  const updateMonthlyBudgetLimit = useFinanceStore((state) => state.updateMonthlyBudgetLimit)
 
+  const activeLimit = Number(monthlyBudget) || Number(budgets?.monthlyLimit) || 0
   const [currency, setCurrency] = useState(user.currency || 'INR')
   const [dateFormat, setDateFormat] = useState(user.dateFormat || 'DD/MM/YYYY')
-  const [budget, setBudget] = useState(String(monthlyBudget || 45000))
+  const [budget, setBudget] = useState(activeLimit > 0 ? String(activeLimit) : '')
   const [loanNotification1DayBefore, setLoanNotification1DayBefore] = useState(user.loanNotification1DayBefore !== false)
 
   const handleSave = () => {
@@ -19,7 +21,7 @@ export const Settings = () => {
       dateFormat,
       loanNotification1DayBefore,
     })
-    updateMonthlyBudget(parseFloat(budget) || 45000)
+    updateMonthlyBudgetLimit(parseFloat(budget) || 0)
     alert('Preferences saved successfully!')
   }
 
@@ -79,10 +81,7 @@ export const Settings = () => {
           <input
             type="number"
             value={budget}
-            onChange={(e) => {
-              setBudget(e.target.value)
-              updateMonthlyBudget(e.target.value)
-            }}
+            onChange={(e) => setBudget(e.target.value)}
             className="w-full p-2.5 bg-[#FAFBF9] border border-brand-border rounded-xl text-xs font-bold text-forest outline-none focus:border-forest"
           />
         </div>

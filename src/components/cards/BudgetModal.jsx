@@ -1,22 +1,32 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Modal } from '../common/Modal'
 import { AmountInput } from '../common/AmountInput'
 import { useFinanceStore } from '../../store/useFinanceStore'
-import { Check, Target } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 export const BudgetModal = ({ isOpen, onClose }) => {
   const monthlyBudget = useFinanceStore((state) => state.monthlyBudget)
-  const updateMonthlyBudget = useFinanceStore((state) => state.updateMonthlyBudget)
+  const budgets = useFinanceStore((state) => state.budgets)
+  const updateMonthlyBudgetLimit = useFinanceStore((state) => state.updateMonthlyBudgetLimit)
   const user = useFinanceStore((state) => state.user)
 
-  const [budgetAmount, setBudgetAmount] = useState(monthlyBudget > 0 ? String(monthlyBudget) : '')
+  const activeLimit = Number(monthlyBudget) || Number(budgets?.monthlyLimit) || 0
+  const [budgetAmount, setBudgetAmount] = useState(activeLimit > 0 ? String(activeLimit) : '')
+
+  // Keep input in sync whenever the modal is opened or store limits update
+  useEffect(() => {
+    if (isOpen) {
+      const current = Number(monthlyBudget) || Number(budgets?.monthlyLimit) || 0
+      setBudgetAmount(current > 0 ? String(current) : '')
+    }
+  }, [isOpen, monthlyBudget, budgets?.monthlyLimit])
 
   const presets = [15000, 25000, 35000, 50000, 75000]
 
   const handleSubmit = (e) => {
     e.preventDefault()
     const num = parseFloat(budgetAmount) || 0
-    updateMonthlyBudget(num)
+    updateMonthlyBudgetLimit(num)
     onClose()
   }
 

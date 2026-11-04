@@ -279,9 +279,28 @@ export const useFinanceStore = create(
             updates.categories = categoriesRes.value
           }
           if (budgetRes.status === 'fulfilled' && budgetRes.value) {
-            updates.budgets = budgetRes.value
-            if (budgetRes.value.monthlyLimit > 0) {
-              updates.monthlyBudget = budgetRes.value.monthlyLimit
+            const dbLimit = Number(budgetRes.value.monthlyLimit) || 0
+            const localLimit = Number(get().monthlyBudget) || Number(get().budgets?.monthlyLimit) || 0
+
+            if (dbLimit > 0) {
+              updates.budgets = budgetRes.value
+              updates.monthlyBudget = dbLimit
+            } else if (localLimit > 0) {
+              // Supabase has no limit recorded yet, but user set one locally: preserve it & sync to Supabase!
+              updates.budgets = {
+                ...budgetRes.value,
+                monthlyLimit: localLimit,
+              }
+              updates.monthlyBudget = localLimit
+              BudgetService.updateMonthlyBudgetLimit(localLimit).then((saved) => {
+                if (saved?.id) {
+                  set((s) => ({
+                    budgets: { ...s.budgets, budgetId: saved.id, monthlyLimit: localLimit },
+                  }))
+                }
+              }).catch(() => {})
+            } else {
+              updates.budgets = budgetRes.value
             }
           }
           if (savingsRes.status === 'fulfilled' && savingsRes.value) {
@@ -388,7 +407,7 @@ export const useFinanceStore = create(
 
       // Balance & Budget Actions
       updateTotalBalance: (balance) => set({ totalBalance: Number(balance) || 0 }),
-      updateMonthlyBudget: (budget) => set({ monthlyBudget: Number(budget) || 0 }),
+      updateMonthlyBudget: (budget) => get().updateMonthlyBudgetLimit(budget),
 
       // Expense Groups Actions
       addExpenseGroup: (group) => {
@@ -760,8 +779,8 @@ export const useFinanceStore = create(
       },
 
       // Budget Actions
-      updateMonthlyBudgetLimit: (limit) => {
-        const num = Number(limit) || 0
+      updateMonthlyBudgetLimit: async (limit) => {
+        const num = Math.max(0, Number(limit) || 0)
         set((state) => ({
           monthlyBudget: num,
           budgets: {
@@ -769,13 +788,23 @@ export const useFinanceStore = create(
             monthlyLimit: num,
           },
         }))
-        BudgetService.updateMonthlyBudgetLimit(num).catch((err) =>
+        try {
+          const saved = await BudgetService.updateMonthlyBudgetLimit(num)
+          if (saved?.id) {
+            set((state) => ({
+              budgets: {
+                ...state.budgets,
+                budgetId: saved.id,
+                monthlyLimit: num,
+              },
+            }))
+          }
+        } catch (err) {
           console.warn('Supabase updateMonthlyBudgetLimit note:', err)
-        )
+        }
       },
-      setCategoryBudget: (catId, limit) => {
-        const num = Number(limit) || 0
-        const budgetId = get().budgets?.budgetId
+      setCategoryBudget: async (catId, limit) => {
+        const num = Math.max(0, Number(limit) || 0)
         set((state) => ({
           budgets: {
             ...state.budgets,
@@ -785,6 +814,24 @@ export const useFinanceStore = create(
             },
           },
         }))
+        let budgetId = get().budgets?.budgetId
+        if (!budgetId) {
+          try {
+            const currentTotal = Number(get().monthlyBudget) || Number(get().budgets?.monthlyLimit) || 0
+            const saved = await BudgetService.updateMonthlyBudgetLimit(currentTotal)
+            if (saved?.id) {
+              budgetId = saved.id
+              set((state) => ({
+                budgets: {
+                  ...state.budgets,
+                  budgetId: saved.id,
+                },
+              }))
+            }
+          } catch (err) {
+            console.warn('Failed to ensure budget before category limit:', err)
+          }
+        }
         if (budgetId) {
           BudgetService.setCategoryLimit(budgetId, catId, num).catch((err) =>
             console.warn('Supabase setCategoryLimit note:', err)

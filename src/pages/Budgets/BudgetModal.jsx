@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Modal } from '../../components/common/Modal'
 import { AmountInput } from '../../components/common/AmountInput'
 import { CategoryIcon } from '../../components/common/CategoryIcon'
@@ -8,6 +8,7 @@ import { Check } from 'lucide-react'
 
 export const BudgetModal = ({ isOpen, onClose, categoryId = null }) => {
   const budgets = useFinanceStore((state) => state.budgets)
+  const monthlyBudget = useFinanceStore((state) => state.monthlyBudget)
   const categories = useFinanceStore((state) => state.categories)
   const updateMonthlyBudgetLimit = useFinanceStore((state) => state.updateMonthlyBudgetLimit)
   const setCategoryBudget = useFinanceStore((state) => state.setCategoryBudget)
@@ -16,11 +17,25 @@ export const BudgetModal = ({ isOpen, onClose, categoryId = null }) => {
   const isEditingTotal = categoryId === 'total' || !categoryId
   const category = categories.find(c => c.id === categoryId)
 
+  const currentTotal = Number(budgets?.monthlyLimit) || Number(monthlyBudget) || 0
   const initialAmount = isEditingTotal
-    ? String(budgets.monthlyLimit || '')
-    : String(budgets.categoryLimits?.[categoryId] || '')
+    ? (currentTotal > 0 ? String(currentTotal) : '')
+    : String(budgets?.categoryLimits?.[categoryId] || '')
 
   const [amount, setAmount] = useState(initialAmount)
+
+  // Keep input synchronized when opening or switching category/total
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditingTotal) {
+        const total = Number(budgets?.monthlyLimit) || Number(monthlyBudget) || 0
+        setAmount(total > 0 ? String(total) : '')
+      } else if (categoryId) {
+        const catLimit = budgets?.categoryLimits?.[categoryId] || 0
+        setAmount(catLimit > 0 ? String(catLimit) : '')
+      }
+    }
+  }, [isOpen, categoryId, isEditingTotal, budgets, monthlyBudget])
 
   const handleSubmit = (e) => {
     e.preventDefault()

@@ -1,14 +1,30 @@
 import { supabase, handleSupabaseError } from '../lib/supabase'
 
+const getMonthRange = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const lastDay = new Date(year, now.getMonth() + 1, 0).getDate()
+  const startOfMonth = `${year}-${month}-01`
+  const endOfMonth = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
+  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' })
+  return { startOfMonth, endOfMonth, monthName }
+}
+
 export const BudgetService = {
   /**
    * Get active monthly budget and its category limits
    */
   async getActiveBudget() {
     try {
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return {
+          monthlyLimit: 0,
+          categoryLimits: {},
+          budgetId: null,
+        }
+      }
 
       const { data: budgets, error } = await supabase
         .from('budgets')
@@ -21,6 +37,7 @@ export const BudgetService = {
             category:categories(id, name, type, icon, color)
           )
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
 
@@ -62,10 +79,7 @@ export const BudgetService = {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
-      const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' })
+      const { startOfMonth, endOfMonth, monthName } = getMonthRange()
 
       // Check if current month budget already exists
       const { data: existing } = await supabase
@@ -76,7 +90,7 @@ export const BudgetService = {
         .lte('end_date', endOfMonth)
         .limit(1)
 
-      const limit = Number(limitAmount) || 0
+      const limit = Math.max(0, Number(limitAmount) || 0)
 
       if (existing && existing.length > 0) {
         const { data, error } = await supabase
@@ -119,7 +133,7 @@ export const BudgetService = {
           {
             budget_id: budgetId,
             category_id: categoryId,
-            allocated_amount: Number(amount) || 0,
+            allocated_amount: Math.max(0, Number(amount) || 0),
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'budget_id,category_id' }

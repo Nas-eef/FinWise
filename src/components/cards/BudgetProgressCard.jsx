@@ -7,6 +7,7 @@ import { AlertCircle, Edit2, SlidersHorizontal } from 'lucide-react'
 export const BudgetProgressCard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const monthlyBudget = useFinanceStore((state) => state.monthlyBudget)
+  const budgets = useFinanceStore((state) => state.budgets)
   const transactions = useFinanceStore((state) => state.transactions)
   const user = useFinanceStore((state) => state.user)
 
@@ -15,8 +16,9 @@ export const BudgetProgressCard = () => {
     .filter((t) => t.type === 'expense' && t.date && t.date.startsWith(currentMonthPrefix))
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
 
-  const hasBudget = monthlyBudget > 0
-  const limit = hasBudget ? monthlyBudget : 0
+  const activeLimit = Number(monthlyBudget) || Number(budgets?.monthlyLimit) || 0
+  const hasBudget = activeLimit > 0
+  const limit = hasBudget ? activeLimit : 0
   const spent = monthlyExpenses
   const remaining = hasBudget ? Math.max(0, limit - spent) : 0
   const percentage = hasBudget ? Math.round((spent / limit) * 100) : 0
